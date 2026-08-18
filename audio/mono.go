@@ -2,9 +2,9 @@ package audio
 
 import "fmt"
 
-func ToMono(wav *WAVFile) ([]int16, error) {
+func (wav *WAVFile) ToMono() (*WAVFile, error) {
 	if wav.NumChannels == 1 {
-		return wav.Samples, nil
+		return wav, nil
 	}
 
 	if len(wav.Samples)%2 != 0 {
@@ -28,5 +28,10 @@ func ToMono(wav *WAVFile) ([]int16, error) {
 		j++
 	}
 
-	return mono, nil
+	return &WAVFile{
+		SampleRate:    wav.SampleRate,
+		NumChannels:   1,
+		BitsPerSample: wav.BitsPerSample,
+		Samples:       mono,
+	}, nil
 }

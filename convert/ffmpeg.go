@@ -7,7 +7,7 @@ import (
 
 func ToWAV(inputPath, outputPath string) error {
 
-	cmd := exec.Command("ffmpeg", "-i", inputPath, "-ar", "44100", "-ac", "2", "-y", outputPath)
+	cmd := exec.Command("ffmpeg", "-i", inputPath, "-ar", "11025", "-ac", "2", "-y", outputPath)
 
 	output, err := cmd.CombinedOutput()
 
