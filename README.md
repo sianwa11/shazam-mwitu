@@ -18,10 +18,10 @@ More details will be added as the project matures.
 
 ## Progress
 
-- [x] WAV parsing
-- [x] Mono conversion + downsampling
-- [x] Windowing + FFT + spectrogram
-- [x] Peak-picking
+- [✅] WAV parsing
+- [✅] Mono conversion + downsampling
+- [✅] Windowing + FFT + spectrogram
+- [✅] Peak-picking
 - [ ] Target zones / hashing
 - [ ] Fingerprint storage
 - [ ] Matching / search
