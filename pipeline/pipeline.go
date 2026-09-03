@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -90,10 +89,8 @@ func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
 	peaks := fingerprint.PeakPicking(spectrogram)
 	hashes := fingerprint.Hashing(peaks)
 
-
 	db := NewFingerprintDB()
 	db.Store(info.ID, hashes)
-
 
 	return filepath.Base(mp3Path), peaks, nil
 }
