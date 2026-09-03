@@ -2,12 +2,14 @@ package pipeline
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 
 	"github.com/sianwa11/shazam-mwitu/audio"
 	"github.com/sianwa11/shazam-mwitu/convert"
 	"github.com/sianwa11/shazam-mwitu/fingerprint"
+	"github.com/sianwa11/shazam-mwitu/registry"
 	"github.com/sianwa11/shazam-mwitu/visuals"
 	"gonum.org/v1/gonum/dsp/fourier"
 )
@@ -17,11 +19,47 @@ const (
 	hop       = 512
 )
 
+type Entry struct {
+	AnchorTime int
+	SongID     int
+}
+
+type FingerprintDB struct {
+	entries map[uint32][]Entry
+}
+
+func NewFingerprintDB() *FingerprintDB {
+	return &FingerprintDB{
+		entries: make(map[uint32][]Entry),
+	}
+}
+
+func (db *FingerprintDB) Store(songID int, hashes []fingerprint.Hash) {
+	for _, hash := range hashes {
+		entry := Entry{
+			AnchorTime: hash.AnchorTime,
+			SongID:     songID,
+		}
+		db.entries[hash.Address] = append(db.entries[hash.Address], entry)
+	}
+}
+
+func (db *FingerprintDB) Lookup(address uint32) []Entry {
+	return db.entries[address]
+}
+
 func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
 	wavPath := strings.TrimSuffix(mp3Path, filepath.Ext(mp3Path)) + ".wav"
 	if err := convert.ToWAV(mp3Path, wavPath); err != nil {
 		return "", nil, fmt.Errorf("convert: %w", err)
 	}
+
+	filename := filepath.Base(wavPath)
+	ext := filepath.Ext(filename)
+	songName := strings.TrimSuffix(filename, ext)
+
+	registry := registry.NewSongRegistry()
+	info := registry.Register(songName, wavPath)
 
 	wav, err := audio.ReadWav(wavPath)
 	if err != nil {
@@ -50,6 +88,12 @@ func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
 	visuals.WriteSpectrogramCSV(spectrogram, "visuals/spectrogram.csv")
 
 	peaks := fingerprint.PeakPicking(spectrogram)
+	hashes := fingerprint.Hashing(peaks)
+
+
+	db := NewFingerprintDB()
+	db.Store(info.ID, hashes)
+
 
 	return filepath.Base(mp3Path), peaks, nil
 }

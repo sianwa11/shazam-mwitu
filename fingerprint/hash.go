@@ -1,5 +1,7 @@
 package fingerprint
 
+import "fmt"
+
 const (
 	zoneSize     = 5
 	anchorOffset = 3
@@ -8,6 +10,10 @@ const (
 type Hash struct {
 	Address    uint32
 	AnchorTime int
+}
+
+func (h Hash) String() string {
+	return fmt.Sprintf("Hash{Address: 0x%08X, AnchorTime: %d}", h.Address, h.AnchorTime)
 }
 
 func Hashing(peaks []Peak) []Hash {

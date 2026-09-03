@@ -22,6 +22,6 @@ More details will be added as the project matures.
 - [✅] Mono conversion + downsampling
 - [✅] Windowing + FFT + spectrogram
 - [✅] Peak-picking
-- [ ] Target zones / hashing
+- [✅] Target zones / hashing
 - [ ] Fingerprint storage
 - [ ] Matching / search
