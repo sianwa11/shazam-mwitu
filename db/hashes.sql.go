@@ -25,3 +25,30 @@ func (q *Queries) CreateHash(ctx context.Context, arg CreateHashParams) (Hash, e
 	err := row.Scan(&i.Address, &i.AnchorTime, &i.SongID)
 	return i, err
 }
+
+const getHashByAddress = `-- name: GetHashByAddress :many
+SELECT address, anchor_time, song_id FROM hashes WHERE address = ?
+`
+
+func (q *Queries) GetHashByAddress(ctx context.Context, address int64) ([]Hash, error) {
+	rows, err := q.db.QueryContext(ctx, getHashByAddress, address)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Hash
+	for rows.Next() {
+		var i Hash
+		if err := rows.Scan(&i.Address, &i.AnchorTime, &i.SongID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

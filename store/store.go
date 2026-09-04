@@ -55,5 +55,12 @@ func (s *Store) InsertSongWithHashes(ctx context.Context, title, path string, ha
 	}
 
 	return nil
+}
 
+func (s *Store) LookupAddress(ctx context.Context, address uint32) ([]db.Hash, error) {
+	return s.queries.GetHashByAddress(ctx, int64(address))
+}
+
+func (s *Store) GetSong(ctx context.Context, songID int64) (db.Song, error) {
+	return s.queries.GetSong(ctx, int64(songID))
 }

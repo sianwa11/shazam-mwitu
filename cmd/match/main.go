@@ -14,8 +14,7 @@ import (
 )
 
 func main() {
-
-	db, err := sql.Open("sqlite3", "songs.db")
+	db, err := sql.Open("sqlite3", "./songs.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,10 +23,13 @@ func main() {
 	store := store.NewStore(db)
 	ctx := context.Background()
 
-	files, _ := filepath.Glob("songs/*.mp3")
+	files, err := filepath.Glob("./recordings/*.mp4")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	for _, f := range files {
-		songInfo, peaks, err := pipeline.BuildFingerprint(f)
+		_, peaks, err := pipeline.BuildFingerprint(f)
 		if err != nil {
 			log.Printf("skipping %s: %v", f, err)
 			continue
@@ -35,11 +37,16 @@ func main() {
 
 		hashes := fingerprint.Hashing(peaks)
 
-		if err := store.InsertSongWithHashes(ctx, songInfo.Name, songInfo.Path, hashes); err != nil {
-			log.Printf("failed to store %s: %v", songInfo.Name, err)
-			continue
+		for _, h := range hashes {
+			entries, err := store.LookupAddress(ctx, h.Address)
+			if err != nil {
+				log.Printf("lookup error for address %d: %v", h.Address, err)
+				continue
+			}
+			if len(entries) > 0 {
+				log.Printf("address %d -> %d matches: %v", h.Address, len(entries), entries)
+			}
+
 		}
-
 	}
-
 }
