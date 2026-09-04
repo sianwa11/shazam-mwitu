@@ -47,10 +47,10 @@ func (db *FingerprintDB) Lookup(address uint32) []Entry {
 	return db.entries[address]
 }
 
-func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
+func BuildFingerprint(mp3Path string) (registry.SongInfo, []fingerprint.Peak, error) {
 	wavPath := strings.TrimSuffix(mp3Path, filepath.Ext(mp3Path)) + ".wav"
 	if err := convert.ToWAV(mp3Path, wavPath); err != nil {
-		return "", nil, fmt.Errorf("convert: %w", err)
+		return registry.SongInfo{}, nil, fmt.Errorf("convert: %w", err)
 	}
 
 	filename := filepath.Base(wavPath)
@@ -62,12 +62,12 @@ func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
 
 	wav, err := audio.ReadWav(wavPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("convert: %w", err)
+		return info, nil, fmt.Errorf("convert: %w", err)
 	}
 
 	mono, err := wav.ToMono()
 	if err != nil {
-		return "", nil, fmt.Errorf("convert: %w", err)
+		return info, nil, fmt.Errorf("convert: %w", err)
 	}
 
 	samples := fingerprint.ConvertToFloat64Array(mono.Samples)
@@ -87,10 +87,6 @@ func BuildFingerprint(mp3Path string) (string, []fingerprint.Peak, error) {
 	visuals.WriteSpectrogramCSV(spectrogram, "visuals/spectrogram.csv")
 
 	peaks := fingerprint.PeakPicking(spectrogram)
-	hashes := fingerprint.Hashing(peaks)
 
-	db := NewFingerprintDB()
-	db.Store(info.ID, hashes)
-
-	return filepath.Base(mp3Path), peaks, nil
+	return info, peaks, nil
 }

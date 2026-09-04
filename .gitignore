@@ -1,5 +1,7 @@
 /songs
-/songs
 visuals/.venv/
 visuals/*.csv
 visuals/*.png
+
+songs.db
+/shazam-mwitu
