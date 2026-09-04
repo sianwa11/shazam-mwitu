@@ -23,5 +23,5 @@ More details will be added as the project matures.
 - [✅] Windowing + FFT + spectrogram
 - [✅] Peak-picking
 - [✅] Target zones / hashing
-- [ ] Fingerprint storage
-- [ ] Matching / search
+- [✅] Fingerprint storage
+- [✅] Matching / search

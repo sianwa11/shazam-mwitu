@@ -9,7 +9,6 @@ import (
 	"github.com/sianwa11/shazam-mwitu/convert"
 	"github.com/sianwa11/shazam-mwitu/fingerprint"
 	"github.com/sianwa11/shazam-mwitu/registry"
-	"github.com/sianwa11/shazam-mwitu/visuals"
 	"gonum.org/v1/gonum/dsp/fourier"
 )
 
@@ -84,7 +83,7 @@ func BuildFingerprint(mp3Path string) (registry.SongInfo, []fingerprint.Peak, er
 		spectrogram = append(spectrogram, magnitude)
 	}
 
-	visuals.WriteSpectrogramCSV(spectrogram, "visuals/spectrogram.csv")
+	// visuals.WriteSpectrogramCSV(spectrogram, "visuals/spectrogram.csv")
 
 	peaks := fingerprint.PeakPicking(spectrogram)
 

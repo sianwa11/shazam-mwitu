@@ -37,16 +37,40 @@ func main() {
 
 		hashes := fingerprint.Hashing(peaks)
 
+		scores := make(map[match]int)
 		for _, h := range hashes {
 			entries, err := store.LookupAddress(ctx, h.Address)
 			if err != nil {
 				log.Printf("lookup error for address %d: %v", h.Address, err)
 				continue
 			}
-			if len(entries) > 0 {
-				log.Printf("address %d -> %d matches: %v", h.Address, len(entries), entries)
-			}
 
+			AddMatches(scores, entries, h)
 		}
+
+		ranked := RankMatches(scores)
+		totalHashes := len(hashes)
+
+		// if len(ranked) > 0 {
+		// 	ratio := float64(ranked[0].Count) / float64(totalHashes)
+		// 	log.Printf("%s: best=%q votes=%d/%d ratio=%.4f (threshold ratio=%.4f)",
+		// 		f, ranked[0].SongID, ranked[0].Count, totalHashes, ratio, matchCoefficient)
+		// }
+
+		match, ok := BestMatch(ranked, totalHashes)
+		if !ok {
+			log.Printf("%s no confident match found", f)
+			continue
+		}
+
+		song, err := store.GetSong(ctx, match.SongID)
+		if err != nil {
+			log.Printf("%s matched song_id=%d but failed to load metadata: %v", f, match.SongID, err)
+			continue
+		}
+
+		log.Printf("%s: Match -> %q (votes=%d/%d, offset=%d)", f, song.Title, match.Count, totalHashes, match.Offset)
+
 	}
+
 }
