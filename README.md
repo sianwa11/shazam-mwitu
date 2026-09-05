@@ -6,12 +6,12 @@ Built as a learning exercise to understand the full pipeline behind recognition,
 
 ## Tech stack
 
-- **Go** — core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
+- **Go** - core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
 - **[gonum](https://gonum.org/)** — FFT computation
-- **FFmpeg** — audio format conversion and downsampling (invoked via `os/exec`)
-- **SQLite** — fingerprint storage
-- **[sqlc](https://sqlc.dev/)** — type-safe generated SQL queries
-- **[goose](https://github.com/pressly/goose)** — database schema migrations
+- **FFmpeg** - audio format conversion and downsampling (invoked via `os/exec`)
+- **SQLite** - fingerprint storage
+- **[sqlc](https://sqlc.dev/)** - type-safe generated SQL queries
+- **[goose](https://github.com/pressly/goose)** - database schema migrations
 
 ## How it works
 
