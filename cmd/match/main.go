@@ -52,25 +52,21 @@ func main() {
 		totalHashes := len(hashes)
 
 		// if len(ranked) > 0 {
-		// 	ratio := float64(ranked[0].Count) / float64(totalHashes)
-		// 	log.Printf("%s: best=%q votes=%d/%d ratio=%.4f (threshold ratio=%.4f)",
-		// 		f, ranked[0].SongID, ranked[0].Count, totalHashes, ratio, matchCoefficient)
+		// 	log.Printf("%s: best votes=%d/%d (need >=%d)", f, ranked[0].Count, totalHashes, minVotes)
 		// }
 
-		match, ok := BestMatch(ranked, totalHashes)
-		if !ok {
-			log.Printf("%s no confident match found", f)
-			continue
+		result := BestMatch(ranked, totalHashes)
+		switch result.Confidence {
+		case ConfidentMatch:
+			song, _ := store.GetSong(ctx, result.Song.SongID)
+			log.Printf("%s: Definitely %q (votes=%d)", f, song.Title, result.Song.Count)
+
+		case PossibleMatch:
+			song, _ := store.GetSong(ctx, result.Song.SongID)
+			log.Printf("%s: Might be %q (votes=%d)", f, song.Title, result.Song.Count)
+
+		case NoMatch:
+			log.Print("No Match found")
 		}
-
-		song, err := store.GetSong(ctx, match.SongID)
-		if err != nil {
-			log.Printf("%s matched song_id=%d but failed to load metadata: %v", f, match.SongID, err)
-			continue
-		}
-
-		log.Printf("%s: Match -> %q (votes=%d/%d, offset=%d)", f, song.Title, match.Count, totalHashes, match.Offset)
-
 	}
-
 }

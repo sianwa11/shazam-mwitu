@@ -7,7 +7,10 @@ import (
 	"github.com/sianwa11/shazam-mwitu/fingerprint"
 )
 
-const matchCoefficient = 0 // tune this
+const (
+	highConfidenceVotes = 7
+	lowConfidenceVotes  = 3
+)
 
 type match struct {
 	songID int64
@@ -18,6 +21,19 @@ type SongMatch struct {
 	SongID int64
 	Offset int64
 	Count  int
+}
+
+type MatchConfidence int
+
+const (
+	NoMatch = iota
+	PossibleMatch
+	ConfidentMatch
+)
+
+type MatchResult struct {
+	Song       SongMatch
+	Confidence MatchConfidence
 }
 
 func AddMatches(scores map[match]int, entries []db.Hash, hash fingerprint.Hash) {
@@ -45,18 +61,20 @@ func RankMatches(scores map[match]int) []SongMatch {
 	return ranked
 }
 
-func BestMatch(ranked []SongMatch, totalHashes int) (SongMatch, bool) {
+func BestMatch(ranked []SongMatch, totalHashes int) MatchResult {
 	if len(ranked) == 0 {
-		return SongMatch{}, false
+		return MatchResult{}
 	}
 
 	best := ranked[0]
-	threshold := float64(totalHashes) * matchCoefficient
 
-
-	if float64(best.Count) < threshold {
-		return SongMatch{}, false
+	switch {
+	case best.Count >= highConfidenceVotes:
+		return MatchResult{Song: best, Confidence: ConfidentMatch}
+	case best.Count >= lowConfidenceVotes:
+		return MatchResult{Song: best, Confidence: lowConfidenceVotes}
+	default:
+		return MatchResult{Confidence: NoMatch}
 	}
 
-	return best, true
 }
