@@ -4,6 +4,15 @@ Shazam Mwitu is a project exploring how audio fingerprinting works, the kind of 
 
 Built as a learning exercise to understand the full pipeline behind recognition, from raw audio all the way to a searchable fingerprint database and back to a confident (or not-so-confident) match.
 
+## Tech stack
+
+- **Go** — core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
+- **[gonum](https://gonum.org/)** — FFT computation
+- **FFmpeg** — audio format conversion and downsampling (invoked via `os/exec`)
+- **SQLite** — fingerprint storage
+- **[sqlc](https://sqlc.dev/)** — type-safe generated SQL queries
+- **[goose](https://github.com/pressly/goose)** — database schema migrations
+
 ## How it works
 
 1. Convert input audio to WAV (via FFmpeg) and downsample
@@ -18,7 +27,7 @@ Built as a learning exercise to understand the full pipeline behind recognition,
 To identify a recording, the same pipeline runs on a short clip, and its
 hashes are looked up against the stored database. Matches are scored by
 checking how consistently they agree on a single time offset between the
-recording and a candidate song, a real match produces many hashes agreeing
+recording and a candidate song — a real match produces many hashes agreeing
 on the same offset; coincidental matches scatter randomly. The result is
 reported as one of three confidence levels: a confident match, a possible
 match, or no match found.
@@ -27,15 +36,15 @@ match, or no match found.
 
 Build the fingerprint database from a folder of songs:
 
-​`bash
+​```bash
 go run ./cmd/build
-​`
+​```
 
 Identify a recording against the database:
 
-​`bash
+​```bash
 go run ./cmd/match
-​`
+​```
 
 ## Progress
 
