@@ -7,7 +7,7 @@ Built as a learning exercise to understand the full pipeline behind recognition,
 ## Tech stack
 
 - **Go** - core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
-- **[gonum](https://gonum.org/)** — FFT computation
+- **[gonum](https://gonum.org/)** - FFT computation
 - **FFmpeg** - audio format conversion and downsampling (invoked via `os/exec`)
 - **SQLite** - fingerprint storage
 - **[sqlc](https://sqlc.dev/)** - type-safe generated SQL queries
