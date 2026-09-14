@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
+	identity "github.com/sianwa11/shazam-mwitu/Identity"
 	"github.com/sianwa11/shazam-mwitu/fingerprint"
 	"github.com/sianwa11/shazam-mwitu/pipeline"
 	"github.com/sianwa11/shazam-mwitu/store"
@@ -37,7 +38,7 @@ func main() {
 
 		hashes := fingerprint.Hashing(peaks)
 
-		scores := make(map[match]int)
+		scores := make(map[identity.Match]int)
 		for _, h := range hashes {
 			entries, err := store.LookupAddress(ctx, h.Address)
 			if err != nil {
@@ -45,27 +46,27 @@ func main() {
 				continue
 			}
 
-			AddMatches(scores, entries, h)
+			identity.AddMatches(scores, entries, h)
 		}
 
-		ranked := RankMatches(scores)
+		ranked := identity.RankMatches(scores)
 		totalHashes := len(hashes)
 
 		// if len(ranked) > 0 {
 		// 	log.Printf("%s: best votes=%d/%d (need >=%d)", f, ranked[0].Count, totalHashes, minVotes)
 		// }
 
-		result := BestMatch(ranked, totalHashes)
+		result := identity.BestMatch(ranked, totalHashes)
 		switch result.Confidence {
-		case ConfidentMatch:
+		case identity.ConfidenceMatch:
 			song, _ := store.GetSong(ctx, result.Song.SongID)
 			log.Printf("%s: Definitely %q (votes=%d)", f, song.Title, result.Song.Count)
 
-		case PossibleMatch:
+		case identity.PossibleMatch:
 			song, _ := store.GetSong(ctx, result.Song.SongID)
 			log.Printf("%s: Might be %q (votes=%d)", f, song.Title, result.Song.Count)
 
-		case NoMatch:
+		case identity.NoMatch:
 			log.Print("No Match found")
 		}
 	}

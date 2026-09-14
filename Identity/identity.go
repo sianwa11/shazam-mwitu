@@ -1,4 +1,4 @@
-package main
+package identity
 
 import (
 	"sort"
@@ -12,7 +12,7 @@ const (
 	lowConfidenceVotes  = 3
 )
 
-type match struct {
+type Match struct {
 	songID int64
 	offset int64
 }
@@ -28,7 +28,7 @@ type MatchConfidence int
 const (
 	NoMatch = iota
 	PossibleMatch
-	ConfidentMatch
+	ConfidenceMatch
 )
 
 type MatchResult struct {
@@ -36,14 +36,14 @@ type MatchResult struct {
 	Confidence MatchConfidence
 }
 
-func AddMatches(scores map[match]int, entries []db.Hash, hash fingerprint.Hash) {
+func AddMatches(scores map[Match]int, entries []db.Hash, hash fingerprint.Hash) {
 	for _, e := range entries {
 		offset := e.AnchorTime - int64(hash.AnchorTime)
-		scores[match{songID: e.SongID, offset: offset}]++
+		scores[Match{songID: e.SongID, offset: offset}]++
 	}
 }
 
-func RankMatches(scores map[match]int) []SongMatch {
+func RankMatches(scores map[Match]int) []SongMatch {
 	best := make(map[int64]SongMatch)
 
 	for m, count := range scores {
@@ -56,6 +56,7 @@ func RankMatches(scores map[match]int) []SongMatch {
 	for _, sm := range best {
 		ranked = append(ranked, sm)
 	}
+
 	sort.Slice(ranked, func(i, j int) bool { return ranked[i].Count > ranked[j].Count })
 
 	return ranked
@@ -70,11 +71,10 @@ func BestMatch(ranked []SongMatch, totalHashes int) MatchResult {
 
 	switch {
 	case best.Count >= highConfidenceVotes:
-		return MatchResult{Song: best, Confidence: ConfidentMatch}
+		return MatchResult{Song: best, Confidence: ConfidenceMatch}
 	case best.Count >= lowConfidenceVotes:
 		return MatchResult{Song: best, Confidence: lowConfidenceVotes}
 	default:
 		return MatchResult{Confidence: NoMatch}
 	}
-
 }
