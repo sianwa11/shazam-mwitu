@@ -36,15 +36,15 @@ match, or no match found.
 
 Build the fingerprint database from a folder of songs:
 
-​```bash
+​`bash
 go run ./cmd/build
-​```
+​`
 
 Identify a recording against the database:
 
-​```bash
+​`bash
 go run ./cmd/match
-​```
+​`
 
 ## Progress
 
@@ -58,7 +58,7 @@ go run ./cmd/match
 
 ## Next up
 
-- [ ] HTTP API wrapping the existing pipeline
+- [x] HTTP API wrapping the existing pipeline
 - [ ] Minimal frontend for uploading/recording a clip
 - [ ] Deployment
 - [ ] Write-up explaining the theory and build process in detail

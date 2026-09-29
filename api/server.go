@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -14,6 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	identity "github.com/sianwa11/shazam-mwitu/Identity"
+	"github.com/sianwa11/shazam-mwitu/fingerprint"
+	"github.com/sianwa11/shazam-mwitu/pipeline"
 	"github.com/sianwa11/shazam-mwitu/store"
 )
 
@@ -27,13 +32,31 @@ type Server struct {
 	router *http.ServeMux
 }
 
-type UploadMetadata struct {
-	Filename     string `json:"filename"`
-	SizeBytes    int64  `json:"size_bytes"`
-	DetectedType string `json:"detected_type"`
-	DeclaredType string `json:"declared_type"`
-	Extension    string `json:"extension"`
-	TempPath     string `json:"temp_path"`
+type IdentifyResponse struct {
+	Confidence string `json:"confidence"`
+	Title      string `json:"title,omitempty"`
+	Artist     string `json:"artist,omitempty"`
+	ArtworkURL string `json:"artwork_url,omitempty"`
+	Votes      int    `json:"votes,omitempty"`
+}
+
+type ArtworkInfo struct {
+	TrackName  string
+	ArtistName string
+	ArtworkURL string
+}
+
+type itunesResponse struct {
+	ResultCount int `json:"resultCount"`
+	Results     []struct {
+		TrackName     string `json:"trackName"`
+		ArtistName    string `json:"artistName"`
+		ArtworkURL100 string `json:"artworkUrl100"`
+	} `json:"results"`
+}
+
+type NoMatch struct {
+	Confidence string `json:"confidence"`
 }
 
 func NewServer(config *Config, store *store.Store) *Server {
@@ -51,6 +74,55 @@ func NewServer(config *Config, store *store.Store) *Server {
 func (s *Server) routes() {
 	s.router.HandleFunc("GET /health", s.handleHealth())
 	s.router.HandleFunc("POST /identify", s.handleIdentify())
+}
+
+func writeJSON(w http.ResponseWriter, statusCode int, jsonVal any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(jsonVal)
+}
+
+func confidenceLabel(c identity.MatchConfidence) string {
+	switch c {
+	case identity.ConfidenceMatch:
+		return "confident"
+	case identity.PossibleMatch:
+		return "possible"
+	default:
+		return "no_match"
+	}
+}
+
+func lookupArtWork(title string) (ArtworkInfo, error) {
+	params := url.Values{}
+	params.Set("term", title)
+	params.Set("media", "music")
+	params.Set("entity", "song")
+	params.Set("limit", "1")
+
+	resp, err := http.Get("https://itunes.apple.com/search?" + params.Encode())
+	if err != nil {
+		return ArtworkInfo{}, fmt.Errorf("itunes request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result itunesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return ArtworkInfo{}, fmt.Errorf("decoding itunes response: %w", err)
+	}
+
+	if result.ResultCount == 0 {
+		return ArtworkInfo{}, fmt.Errorf("no results found for %q", title)
+	}
+
+	track := result.Results[0]
+	bigArtwork := strings.Replace(track.ArtworkURL100, "100x100", "600x600", 1)
+
+	return ArtworkInfo{
+		TrackName:  track.TrackName,
+		ArtistName: track.ArtistName,
+		ArtworkURL: bigArtwork,
+	}, nil
 }
 
 func (s *Server) handleHealth() http.HandlerFunc {
@@ -129,18 +201,57 @@ func (s *Server) handleIdentify() http.HandlerFunc {
 			return
 		}
 
-		meta := UploadMetadata{
-			Filename:     header.Filename,
-			SizeBytes:    header.Size,
-			DetectedType: contentType,
-			DeclaredType: header.Header.Get("Content-Type"),
-			Extension:    ext,
-			TempPath:     tempFile.Name(),
+		// Build the pipeline
+		_, peaks, err := pipeline.BuildFingerprint(tempFile.Name())
+		if err != nil {
+			http.Error(w, "Failed to process audio", http.StatusInternalServerError)
+			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(meta)
+		hashes := fingerprint.Hashing(peaks)
+
+		scores := make(map[identity.Match]int)
+
+		for _, h := range hashes {
+			entries, err := s.store.LookupAddress(r.Context(), h.Address)
+			if err != nil {
+				continue
+			}
+			identity.AddMatches(scores, entries, h)
+		}
+
+		ranked := identity.RankMatches(scores)
+		totalHashes := len(hashes)
+		result := identity.BestMatch(ranked, totalHashes)
+
+		if result.Confidence == identity.NoMatch {
+			writeJSON(w, http.StatusOK, NoMatch{Confidence: "no_match"})
+			return
+		}
+
+		// Both PossibleMatch and ConfidentMatch share this logic
+		song, err := s.store.GetSong(r.Context(), result.Song.SongID)
+		if err != nil {
+			http.Error(w, "Failed to get song", http.StatusInternalServerError)
+			return
+		}
+
+		artwork, err := lookupArtWork(song.Title)
+		if err != nil {
+			log.Printf("artwork lookup failed for %q: %v", song.Title, err)
+			// fall back to your own stored title, no artwork
+			artwork = ArtworkInfo{TrackName: song.Title}
+		}
+
+		response := IdentifyResponse{
+			Confidence: confidenceLabel(result.Confidence),
+			Title:      artwork.TrackName,
+			Artist:     artwork.ArtistName,
+			ArtworkURL: artwork.ArtworkURL,
+			Votes:      result.Song.Count,
+		}
+
+		writeJSON(w, http.StatusOK, response)
 
 	}
 }
