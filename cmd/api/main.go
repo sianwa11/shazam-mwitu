@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/sianwa11/shazam-mwitu/api"
+	"github.com/sianwa11/shazam-mwitu/store"
 )
 
 func main() {
@@ -18,7 +19,9 @@ func main() {
 	}
 	defer db.Close()
 
-	server := api.NewServer(cfg, db)
+	store := store.NewStore(db)
+
+	server := api.NewServer(cfg, store)
 	if err := server.Start(); err != nil {
 		log.Fatalf("Critical server error: %v", err)
 	}
