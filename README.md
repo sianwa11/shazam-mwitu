@@ -1,17 +1,19 @@
 # Shazam Mwitu
 
-Shazam Mwitu is a project exploring how audio fingerprinting works, the kind of technology behind apps that can identify a song just by "listening" to a short clip of it.
+Shazam Mwitu is a project exploring how audio fingerprinting works — the kind of technology behind apps that can identify a song just by "listening" to a short clip of it.
 
-Built as a learning exercise to understand the full pipeline behind recognition, from raw audio all the way to a searchable fingerprint database and back to a confident (or not-so-confident) match.
+Built as a learning exercise to understand the full pipeline behind recognition, from raw audio all the way to a searchable fingerprint database, a confident (or not-so-confident) match, and a real HTTP API to query it.
 
 ## Tech stack
 
-- **Go** - core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
-- **[gonum](https://gonum.org/)** - FFT computation
-- **FFmpeg** - audio format conversion and downsampling (invoked via `os/exec`)
-- **SQLite** - fingerprint storage
-- **[sqlc](https://sqlc.dev/)** - type-safe generated SQL queries
-- **[goose](https://github.com/pressly/goose)** - database schema migrations
+- **Go** — core language, entire pipeline hand-written (WAV parsing, windowing, hashing, matching)
+- **[gonum](https://gonum.org/)** — FFT computation
+- **FFmpeg** — audio format conversion and downsampling (invoked via `os/exec`)
+- **SQLite** (via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)) — fingerprint storage
+- **[sqlc](https://sqlc.dev/)** — type-safe generated SQL queries
+- **[goose](https://github.com/pressly/goose)** — database schema migrations
+- **net/http** (standard library) — HTTP API, no external router/framework
+- **[iTunes Search API](https://performance-partners.apple.com/search-api)** — song title/artist cleanup and album artwork enrichment for matched results
 
 ## How it works
 
@@ -30,7 +32,8 @@ checking how consistently they agree on a single time offset between the
 recording and a candidate song — a real match produces many hashes agreeing
 on the same offset; coincidental matches scatter randomly. The result is
 reported as one of three confidence levels: a confident match, a possible
-match, or no match found.
+match, or no match found. When a song is identified, its title/artist and
+album artwork are enriched via a lookup against the iTunes Search API.
 
 ## Usage
 
@@ -40,10 +43,22 @@ Build the fingerprint database from a folder of songs:
 go run ./cmd/build
 ​`
 
-Identify a recording against the database:
+Identify a recording against the database (CLI):
 
 ​`bash
 go run ./cmd/match
+​`
+
+Run the HTTP API:
+
+​`bash
+go run ./cmd/api
+​`
+
+Identify a recording via the API:
+
+​`bash
+curl -F "recording=@path/to/clip.mp4" http://localhost:8080/identify
 ​`
 
 ## Progress
@@ -55,10 +70,11 @@ go run ./cmd/match
 - [x] Target zones / hashing
 - [x] Fingerprint storage (SQLite, via sqlc + goose migrations)
 - [x] Matching / search with tiered confidence scoring
+- [x] HTTP API (`/identify`) wrapping the pipeline
+- [x] Song metadata + artwork enrichment via iTunes Search API
 
 ## Next up
 
-- [x] HTTP API wrapping the existing pipeline
 - [ ] Minimal frontend for uploading/recording a clip
 - [ ] Deployment
 - [ ] Write-up explaining the theory and build process in detail
