@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -74,6 +75,13 @@ func NewServer(config *Config, store *store.Store) *Server {
 func (s *Server) routes() {
 	s.router.HandleFunc("GET /health", s.handleHealth())
 	s.router.HandleFunc("POST /identify", s.handleIdentify())
+
+	publicFS, err := fs.Sub(PublicFiles, "public")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s.router.Handle("GET /", http.FileServer(http.FS(publicFS)))
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, jsonVal any) {
