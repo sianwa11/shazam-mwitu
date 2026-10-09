@@ -80,7 +80,7 @@ dropzone.addEventListener("drop", (e) => {
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordTimer = null;
-const RECORD_SECONDS = 8;
+const RECORD_SECONDS = 15;
 
 recordBtn.addEventListener("click", async () => {
   if (mediaRecorder && mediaRecorder.state === "recording") {
@@ -101,7 +101,7 @@ recordBtn.addEventListener("click", async () => {
       clearTimeout(recordTimer);
       stream.getTracks().forEach((t) => t.stop());
       recordBtn.classList.remove("recording");
-      recordBtn.lastChild.textContent = "Record 8s from mic";
+      recordBtn.lastChild.textContent = "Record 15s from mic";
 
       const blob = new Blob(recordedChunks, {
         type: mediaRecorder.mimeType || "audio/webm",
