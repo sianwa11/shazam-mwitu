@@ -72,9 +72,9 @@ curl -F "recording=@path/to/clip.mp4" http://localhost:8080/identify
 - [x] Matching / search with tiered confidence scoring
 - [x] HTTP API (`/identify`) wrapping the pipeline
 - [x] Song metadata + artwork enrichment via iTunes Search API
+- [x] Minimal frontend for uploading/recording a clip
 
 ## Next up
 
-- [ ] Minimal frontend for uploading/recording a clip
 - [ ] Deployment
 - [ ] Write-up explaining the theory and build process in detail
