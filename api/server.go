@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -74,6 +75,13 @@ func NewServer(config *Config, store *store.Store) *Server {
 func (s *Server) routes() {
 	s.router.HandleFunc("GET /health", s.handleHealth())
 	s.router.HandleFunc("POST /identify", s.handleIdentify())
+
+	publicFS, err := fs.Sub(PublicFiles, "public")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s.router.Handle("GET /", http.FileServer(http.FS(publicFS)))
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, jsonVal any) {
@@ -133,6 +141,20 @@ func (s *Server) handleHealth() http.HandlerFunc {
 	}
 }
 
+var allowedExtensions = map[string]bool{
+	".mp3":  true,
+	".wav":  true,
+	".mp4":  true,
+	".m4a":  true,
+	".webm": true,
+	".ogg":  true,
+	".flac": true,
+}
+
+func isAllowedExtension(ext string) bool {
+	return allowedExtensions[strings.ToLower(ext)]
+}
+
 func (s *Server) handleIdentify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Must be a POST method
@@ -176,11 +198,11 @@ func (s *Server) handleIdentify() http.HandlerFunc {
 		}
 
 		// verify file type
-		contentType := http.DetectContentType(buffer)
 		ext := filepath.Ext(header.Filename)
-		if !strings.HasPrefix(contentType, "audio/") && contentType != "video/mp4" {
-			log.Printf("Content-Type detection failed: detected=%q ext=%q filename=%q", contentType, ext, header.Filename)
-			http.Error(w, "Must be an audio file", http.StatusBadRequest)
+
+		if !isAllowedExtension(ext) {
+			log.Printf("rejected upload: filename=%q ext=%q", header.Filename, ext)
+			http.Error(w, "Unsupported file type", http.StatusBadRequest)
 			return
 		}
 

@@ -1,8 +1,12 @@
 /songs
 /recordings
+/shazam-mwitu
 visuals/.venv/
 visuals/*.csv
 visuals/*.png
+songs.txt
+downloaded.txt
+*.db
 
-songs.db
-/shazam-mwitu
+
+/.venv

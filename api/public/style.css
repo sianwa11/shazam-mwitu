@@ -1,0 +1,401 @@
+:root {
+  --bg: #0e0f11;
+  --text: #ededee;
+  --text-dim: #78797d;
+  --line: #232427;
+  --accent: #d7a24a;
+  --teal: #5fa893;
+  --rose: #c97286;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---------- topbar ---------- */
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 2rem 1.75rem 0;
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.wordmark em {
+  font-style: normal;
+  color: var(--text-dim);
+}
+
+.topbar-note {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* ---------- main / layout ---------- */
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+
+/* ---------- hero bar visualizer ---------- */
+
+.hero {
+  height: 72px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 3rem 0 3rem;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+
+.bars span {
+  display: block;
+  width: 2px;
+  background: var(--text-dim);
+  animation: bar-idle 2.8s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.bars.analyzing span {
+  background: var(--accent);
+  animation-duration: 0.6s;
+}
+
+@keyframes bar-idle {
+  0%,
+  100% {
+    height: 8%;
+  }
+  50% {
+    height: var(--h, 45%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars span {
+    animation: none;
+    height: var(--h, 35%);
+  }
+}
+
+/* ---------- intro ---------- */
+
+.intro h1 {
+  font-size: 1.6rem;
+  line-height: 1.3;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+  max-width: 22ch;
+}
+
+.intro p {
+  color: var(--text-dim);
+  line-height: 1.65;
+  max-width: 50ch;
+  margin: 0 0 2.75rem;
+  font-size: 0.95rem;
+}
+
+/* ---------- panel / dropzone ---------- */
+
+.panel {
+  padding: 0;
+}
+
+.dropzone {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.dropzone:hover,
+.dropzone.drag {
+  border-color: var(--text-dim);
+}
+
+.dropzone-label {
+  margin: 0 0 0.3rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.dropzone-sub {
+  margin: 0;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.filename {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 0.85rem 0 0;
+  word-break: break-all;
+}
+
+/* ---------- actions / buttons ---------- */
+
+.actions {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+  align-items: center;
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  padding: 0.6rem 1.1rem;
+  border-radius: 4px;
+}
+.btn-primary:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+.btn-ghost {
+  color: var(--text-dim);
+  border-bottom: 1px solid transparent;
+}
+.btn-ghost:hover {
+  color: var(--text);
+}
+.btn-ghost.recording {
+  color: var(--rose);
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.recording .dot {
+  background: var(--rose);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recording .dot {
+    animation: none;
+  }
+}
+
+/* ---------- status ---------- */
+
+.status {
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.status.error {
+  color: var(--rose);
+}
+
+/* ---------- result ---------- */
+
+.result {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 1rem;
+}
+
+.result-art {
+  width: 56px;
+  height: 56px;
+  border-radius: 3px;
+  background: var(--line);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.result-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.badge-confident .dot {
+  background: var(--teal);
+}
+.badge-possible .dot {
+  background: var(--accent);
+}
+.badge-no_match .dot {
+  background: var(--rose);
+}
+
+.result-title {
+  font-weight: 500;
+  font-size: 1rem;
+  margin: 0 0 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-artist {
+  color: var(--text-dim);
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-votes {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.result-empty p {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+/* ---------- footer ---------- */
+
+.footer {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2.5rem;
+  width: 100%;
+}
+
+.footer p {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 48ch;
+}
+
+/* ---------- mobile ---------- */
+
+@media (max-width: 480px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- result feedback additions ---------- */
+
+.result-art.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  background: var(--line);
+}
+
+.result-note {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin: 0.6rem 0 0;
+  max-width: 46ch;
+}
+
+.result-note.subtle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.result-empty .badge {
+  margin-bottom: 0.6rem;
+}
