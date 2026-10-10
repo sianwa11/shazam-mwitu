@@ -369,3 +369,33 @@ main {
     flex-wrap: wrap;
   }
 }
+
+/* ---------- result feedback additions ---------- */
+
+.result-art.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  background: var(--line);
+}
+
+.result-note {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin: 0.6rem 0 0;
+  max-width: 46ch;
+}
+
+.result-note.subtle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.result-empty .badge {
+  margin-bottom: 0.6rem;
+}

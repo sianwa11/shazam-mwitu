@@ -5,8 +5,7 @@ const BAR_COUNT = 28;
 
 for (let i = 0; i < BAR_COUNT; i++) {
   const bar = document.createElement("span");
-  const h = 20 + Math.random() * 70;
-  bar.style.setProperty("--h", h + "%");
+  bar.style.setProperty("--h", 20 + Math.random() * 70 + "%");
   bar.style.animationDelay = (Math.random() * 2).toFixed(2) + "s";
   barsEl.appendChild(bar);
 }
@@ -20,12 +19,10 @@ function setAnalyzing(on) {
 let selectedFile = null; // File or Blob
 
 const dropzone = document.getElementById("dropzone");
-const dropzoneLabel = document.getElementById("dropzoneLabel");
 const fileInput = document.getElementById("fileInput");
 const filenameEl = document.getElementById("filename");
 const identifyBtn = document.getElementById("identifyBtn");
 const recordBtn = document.getElementById("recordBtn");
-const recordDot = document.getElementById("recordDot");
 const statusEl = document.getElementById("status");
 const resultEl = document.getElementById("result");
 
@@ -110,6 +107,9 @@ recordBtn.addEventListener("click", async () => {
     };
 
     mediaRecorder.start();
+    identifyBtn.disabled = true;
+    hide(resultEl);
+    hide(statusEl);
     recordBtn.classList.add("recording");
     recordBtn.lastChild.textContent = "Recording\u2026 tap to stop";
 
@@ -135,30 +135,60 @@ identifyBtn.addEventListener("click", async () => {
   identifyBtn.disabled = true;
 
   const form = new FormData();
-  const name = selectedFile.name || "recording.webm";
-  form.append("recording", selectedFile, name);
+  form.append("recording", selectedFile, selectedFile.name || "recording.webm");
 
   try {
     const res = await fetch("/identify", { method: "POST", body: form });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || "Request failed with status " + res.status);
-    }
+    if (!res.ok) throw new Error(await readError(res));
 
     const data = await res.json();
     hide(statusEl);
     renderResult(data);
   } catch (err) {
-    showStatus(
-      err.message || "Something went wrong talking to the server.",
-      true,
-    );
+    let msg = err.message;
+    if (err instanceof TypeError) {
+      msg = "Couldn't reach the server. Check your connection and try again.";
+    } else if (err instanceof SyntaxError) {
+      msg = "The server sent a response this page couldn't read.";
+    }
+    showStatus(msg, true);
   } finally {
     setAnalyzing(false);
     identifyBtn.disabled = false;
   }
 });
+
+async function readError(res) {
+  const text = (await res.text()).trim();
+  if (res.status >= 500) {
+    return "The server hit an error while analyzing that clip. Try again in a moment.";
+  }
+  return text || "Request failed (" + res.status + ")";
+}
+
+// ---------- title cleanup (display only) ----------
+
+// Stored titles come from YouTube filenames, so strip the usual noise.
+function cleanTitle(raw) {
+  return (raw || "")
+    .replace(
+      /\s*[\(\[][^\)\]]*(official|lyric|audio|video|visualizer|skiza|hd|4k)[^\)\]]*[\)\]]/gi,
+      "",
+    )
+    .replace(/\s*\bSMS\b.*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function splitArtistTitle(raw) {
+  const cleaned = cleanTitle(raw);
+  const i = cleaned.indexOf(" - ");
+  if (i === -1) return { artist: "", title: cleaned };
+  return {
+    artist: cleaned.slice(0, i).trim(),
+    title: cleaned.slice(i + 3).trim(),
+  };
+}
 
 // ---------- rendering ----------
 
@@ -168,36 +198,74 @@ function showStatus(message, isError) {
   statusEl.textContent = message;
 }
 
+function placeholderArt(title) {
+  const initial = (title || "?").trim().charAt(0).toUpperCase();
+  return `<div class="result-art placeholder" aria-hidden="true">${escapeHtml(initial)}</div>`;
+}
+
 function renderResult(data) {
-  const confidence = data.confidence || "no_match";
+  const confidence = data && data.confidence;
+
+  // Don't guess. A missing field means the API and this page disagree.
+  if (!confidence) {
+    console.warn("Unexpected /identify response:", data);
+    showStatus(
+      "The server replied in a format this page didn't expect. Details are in the browser console.",
+      true,
+    );
+    return;
+  }
 
   if (confidence === "no_match") {
     resultEl.innerHTML = `
       <div class="result-empty">
         <span class="badge badge-no_match"><span class="dot"></span>No match</span>
-        <p>Nothing in the library matched closely enough. Try a longer or clearer clip.</p>
+        <p>Nothing in the library matched closely enough.</p>
+        <p class="result-note">Clips of 8 to 15 seconds with little background noise work best. This server can only recognise tracks that were fingerprinted into its library.</p>
       </div>
     `;
     resultEl.hidden = false;
     return;
   }
 
+  // Use iTunes' clean title/artist when we have them, otherwise parse the stored one.
+  const parsed = splitArtistTitle(data.title);
+  const artist = data.artist || parsed.artist;
+  const title = data.artist
+    ? data.title || "Unknown title"
+    : parsed.title || data.title || "Unknown title";
+
   const label =
     confidence === "confident" ? "Confident match" : "Possible match";
+
   const art = data.artwork_url
     ? `<img class="result-art" src="${escapeAttr(data.artwork_url)}" alt="">`
-    : `<div class="result-art"></div>`;
+    : placeholderArt(title);
 
   resultEl.innerHTML = `
     ${art}
     <div class="result-body">
       <span class="badge badge-${escapeAttr(confidence)}"><span class="dot"></span>${label}</span>
-      <p class="result-title">${escapeHtml(data.title || "Unknown title")}</p>
-      <p class="result-artist">${escapeHtml(data.artist || "Unknown artist")}</p>
+      <p class="result-title">${escapeHtml(title)}</p>
+      ${artist ? `<p class="result-artist">${escapeHtml(artist)}</p>` : ""}
       ${typeof data.votes === "number" ? `<p class="result-votes">${data.votes} hashes agreed</p>` : ""}
+      ${
+        confidence === "possible"
+          ? `<p class="result-note">Weaker signal than usual. It may be this track. A longer or cleaner clip would settle it.</p>`
+          : ""
+      }
+      ${data.artwork_url ? "" : `<p class="result-note subtle">No artwork found for this track.</p>`}
     </div>
   `;
   resultEl.hidden = false;
+
+  // If the image URL is dead, fall back to the placeholder instead of a broken icon.
+  const img = resultEl.querySelector("img.result-art");
+  if (img) {
+    img.addEventListener("error", () => {
+      img.outerHTML = placeholderArt(title);
+    });
+  }
 }
 
 function escapeHtml(str) {
