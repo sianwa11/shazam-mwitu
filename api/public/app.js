@@ -203,6 +203,30 @@ function placeholderArt(title) {
   return `<div class="result-art placeholder" aria-hidden="true">${escapeHtml(initial)}</div>`;
 }
 
+let libraryCount = 0;
+
+async function loadLibrary() {
+  try {
+    const res = await fetch("/songs");
+    if (!res.ok) return;
+    const { count, songs } = await res.json();
+    libraryCount = count;
+    const names = [...new Set(songs.map(cleanTitle))].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    document.getElementById("libraryNote").textContent =
+      count + " songs are fingerprinted. Only these can be identified.";
+    document.getElementById("libraryList").innerHTML = names
+      .map((t) => "<li>" + escapeHtml(t) + "</li>")
+      .join("");
+    document.getElementById("library").hidden = false;
+  } catch (e) {
+    console.warn("Could not load song library:", e);
+  }
+}
+
+loadLibrary();
+
 function renderResult(data) {
   const confidence = data && data.confidence;
 
@@ -221,7 +245,7 @@ function renderResult(data) {
       <div class="result-empty">
         <span class="badge badge-no_match"><span class="dot"></span>No match</span>
         <p>Nothing in the library matched closely enough.</p>
-        <p class="result-note">Clips of 8 to 15 seconds with little background noise work best. This server can only recognise tracks that were fingerprinted into its library.</p>
+        <p class="result-note">Clips of 8 to 15 seconds with little background noise work best. This server can only recognise tracks that were fingerprinted into its library${libraryCount ? " of " + libraryCount + " songs" : ""}.</p>
       </div>
     `;
     resultEl.hidden = false;

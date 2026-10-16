@@ -64,3 +64,7 @@ func (s *Store) LookupAddress(ctx context.Context, address uint32) ([]db.Hash, e
 func (s *Store) GetSong(ctx context.Context, songID int64) (db.Song, error) {
 	return s.queries.GetSong(ctx, int64(songID))
 }
+
+func (s *Store) ListSongs(ctx context.Context) ([]db.Song, error) {
+	return s.queries.ListSongs(ctx)
+}
