@@ -75,6 +75,7 @@ func NewServer(config *Config, store *store.Store) *Server {
 func (s *Server) routes() {
 	s.router.HandleFunc("GET /health", s.handleHealth())
 	s.router.HandleFunc("POST /identify", s.handleIdentify())
+	s.router.HandleFunc("GET /songs", s.handleSongs())
 
 	publicFS, err := fs.Sub(PublicFiles, "public")
 	if err != nil {
@@ -82,6 +83,22 @@ func (s *Server) routes() {
 	}
 
 	s.router.Handle("GET /", http.FileServer(http.FS(publicFS)))
+}
+
+func (s *Server) handleSongs() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		songs, err := s.store.ListSongs(r.Context())
+		if err != nil {
+			log.Printf("listing songs: %v", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not list songs"})
+			return
+		}
+		titles := make([]string, 0, len(songs))
+		for _, song := range songs {
+			titles = append(titles, song.Title)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"count": len(titles), "songs": titles})
+	}
 }
 
 func writeJSON(w http.ResponseWriter, statusCode int, jsonVal any) {
