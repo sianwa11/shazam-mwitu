@@ -16,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	identity "github.com/sianwa11/shazam-mwitu/Identity"
 	"github.com/sianwa11/shazam-mwitu/fingerprint"
@@ -118,12 +119,33 @@ func confidenceLabel(c identity.MatchConfidence) string {
 	}
 }
 
+// normalizeName lowercases and keeps only letters and digits, so titles compare loosely.
+func normalizeName(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// lookupArtWork returns iTunes metadata only when a result matches the stored title.
+// Stored titles without an artist ("08 Energy") are skipped: iTunes would guess an
+// unrelated song with the same name.
 func lookupArtWork(title string) (ArtworkInfo, error) {
+	storedArtist, storedTrack, hasArtist := strings.Cut(title, " - ")
+	if !hasArtist {
+		return ArtworkInfo{}, fmt.Errorf("no artist in stored title %q, skipping lookup", title)
+	}
+	wantTrack := normalizeName(storedTrack)
+	wantArtist := normalizeName(storedArtist)
+
 	params := url.Values{}
 	params.Set("term", title)
 	params.Set("media", "music")
 	params.Set("entity", "song")
-	params.Set("limit", "1")
+	params.Set("limit", "5")
 
 	resp, err := http.Get("https://itunes.apple.com/search?" + params.Encode())
 	if err != nil {
@@ -136,18 +158,25 @@ func lookupArtWork(title string) (ArtworkInfo, error) {
 		return ArtworkInfo{}, fmt.Errorf("decoding itunes response: %w", err)
 	}
 
-	if result.ResultCount == 0 {
-		return ArtworkInfo{}, fmt.Errorf("no results found for %q", title)
+	for _, track := range result.Results {
+		gotTrack := normalizeName(track.TrackName)
+		gotArtist := normalizeName(track.ArtistName)
+		if gotTrack == "" || gotArtist == "" {
+			continue
+		}
+		trackOK := strings.Contains(wantTrack, gotTrack)
+		artistOK := strings.Contains(wantArtist, gotArtist) || strings.Contains(gotArtist, wantArtist)
+		if trackOK && artistOK {
+			bigArtwork := strings.Replace(track.ArtworkURL100, "100x100", "600x600", 1)
+			return ArtworkInfo{
+				TrackName:  track.TrackName,
+				ArtistName: track.ArtistName,
+				ArtworkURL: bigArtwork,
+			}, nil
+		}
 	}
 
-	track := result.Results[0]
-	bigArtwork := strings.Replace(track.ArtworkURL100, "100x100", "600x600", 1)
-
-	return ArtworkInfo{
-		TrackName:  track.TrackName,
-		ArtistName: track.ArtistName,
-		ArtworkURL: bigArtwork,
-	}, nil
+	return ArtworkInfo{}, fmt.Errorf("no matching itunes result for %q", title)
 }
 
 func (s *Server) handleHealth() http.HandlerFunc {
