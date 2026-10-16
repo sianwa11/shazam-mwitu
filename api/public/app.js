@@ -180,7 +180,37 @@ function cleanTitle(raw) {
     .trim();
 }
 
+// Stored titles for these tracks have no artist (or a site name), so map them by hand.
+const ARTIST_OVERRIDES = {
+  "stay here": ["Alfa Mist & Emmavie", "Stay Here"],
+  "fly away": ["Alfa Mist & Emmavie", "Fly Away"],
+  "no need to wait": ["Alfa Mist & Emmavie", "No Need to Wait"],
+  insomnia: ["Alfa Mist & Emmavie", "Insomnia"],
+  "easily i forgot": ["Alfa Mist & Emmavie", "Easily, I Forgot"],
+  "no dont incomplete": ["Alfa Mist & Emmavie", "No, Don't Incomplete"],
+  "sing to the moon": ["Alfa Mist & Emmavie", "Sing to the Moon"],
+  energy: ["Alfa Mist & Emmavie", "Energy"],
+  "risk it all": ["Bruno Mars", "Risk It All"],
+  sitolia: ["Willy Paul", "Sitolia"],
+  "heri wewe": ["Ally Fresh", "Heri Wewe"],
+};
+
+function overrideFor(raw) {
+  const rest = cleanTitle(raw).replace(/^y2mate\.is\s*-\s*/i, "");
+  if (rest.includes(" - ")) return null;
+  const key = rest
+    .replace(/^\d+\s+/, "")
+    .toLowerCase()
+    .replace(/-/g, " ")
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return ARTIST_OVERRIDES[key] || null;
+}
+
 function splitArtistTitle(raw) {
+  const override = overrideFor(raw);
+  if (override) return { artist: override[0], title: override[1] };
   const cleaned = cleanTitle(raw);
   const i = cleaned.indexOf(" - ");
   if (i === -1) return { artist: "", title: cleaned };
@@ -211,11 +241,17 @@ async function loadLibrary() {
     if (!res.ok) return;
     const { count, songs } = await res.json();
     libraryCount = count;
-    const names = [...new Set(songs.map(cleanTitle))].sort((a, b) =>
-      a.localeCompare(b),
-    );
+    const names = [
+      ...new Set(
+        songs.map((raw) => {
+          const { artist, title } = splitArtistTitle(raw);
+          return artist ? artist + " - " + title : title;
+        }),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+    libraryCount = names.length;
     document.getElementById("libraryNote").textContent =
-      count + " songs are fingerprinted. Only these can be identified.";
+      names.length + " songs are fingerprinted. Only these can be identified.";
     document.getElementById("libraryList").innerHTML = names
       .map((t) => "<li>" + escapeHtml(t) + "</li>")
       .join("");
