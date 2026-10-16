@@ -163,11 +163,11 @@ func (s *Server) handleIdentify() http.HandlerFunc {
 			return
 		}
 
-		// Limit to 50MB
-		r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
+		// Limit to 15MB
+		r.Body = http.MaxBytesReader(w, r.Body, 15<<20)
 
-		// Allow up to 25MB to stay in RAM
-		if err := r.ParseMultipartForm(25 << 20); err != nil {
+		// Allow up to 10MB to stay in RAM
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			log.Printf("Multipart parse error: %v", err)
 
 			http.Error(w, "File too large", http.StatusBadRequest)
@@ -283,8 +283,8 @@ func (s *Server) Start() error {
 	srv := &http.Server{
 		Addr:         s.config.Address,
 		Handler:      s.router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

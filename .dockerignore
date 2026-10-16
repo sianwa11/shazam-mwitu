@@ -1,0 +1,13 @@
+**/.git
+.github
+**/.venv
+songs/
+recordings/
+**/*.mp3
+**/*.wav
+**/*.mp4
+**/*.csv
+**/*.png
+songs.txt
+downloaded.txt
+bin/
