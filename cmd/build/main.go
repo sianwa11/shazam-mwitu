@@ -35,6 +35,16 @@ func main() {
 			continue
 		}
 
+		exists, err := store.HasSong(ctx, songInfo.Name)
+		if err != nil {
+			log.Printf("checking %s: %v", songInfo.Name, err)
+			continue
+		}
+		if exists {
+			log.Printf("skipping %s: already fingerprinted", songInfo.Name)
+			continue
+		}
+
 		hashes := fingerprint.Hashing(peaks)
 
 		if err := store.InsertSongWithHashes(ctx, songInfo.Name, songInfo.Path, hashes); err != nil {

@@ -68,3 +68,9 @@ func (s *Store) GetSong(ctx context.Context, songID int64) (db.Song, error) {
 func (s *Store) ListSongs(ctx context.Context) ([]db.Song, error) {
 	return s.queries.ListSongs(ctx)
 }
+
+func (s *Store) HasSong(ctx context.Context, title string) (bool, error) {
+	var exists bool
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM songs WHERE title = ?)", title).Scan(&exists)
+	return exists, err
+}
