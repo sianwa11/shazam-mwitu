@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -47,17 +48,24 @@ func (db *FingerprintDB) Lookup(address uint32) []Entry {
 }
 
 func BuildFingerprint(mp3Path string) (registry.SongInfo, []fingerprint.Peak, error) {
-	wavPath := strings.TrimSuffix(mp3Path, filepath.Ext(mp3Path)) + ".wav"
+	out, err := os.CreateTemp("", "converted-*.wav")
+	if err != nil {
+		return registry.SongInfo{}, nil, fmt.Errorf("temp file: %w", err)
+	}
+	wavPath := out.Name()
+	out.Close()
+	defer os.Remove(wavPath)
+
 	if err := convert.ToWAV(mp3Path, wavPath); err != nil {
 		return registry.SongInfo{}, nil, fmt.Errorf("convert: %w", err)
 	}
 
-	filename := filepath.Base(wavPath)
+	filename := filepath.Base(mp3Path)
 	ext := filepath.Ext(filename)
 	songName := strings.TrimSuffix(filename, ext)
 
 	registry := registry.NewSongRegistry()
-	info := registry.Register(songName, wavPath)
+	info := registry.Register(songName, mp3Path)
 
 	wav, err := audio.ReadWav(wavPath)
 	if err != nil {

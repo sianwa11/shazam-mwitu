@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -11,9 +12,9 @@ import (
 )
 
 func main() {
-	cfg := &api.Config{Address: ":8080"}
+	cfg := &api.Config{Address: ":" + getenv("PORT", "8080")}
 
-	db, err := sql.Open("sqlite3", "./songs.db")
+	db, err := sql.Open("sqlite3", getenv("DB_DSN", "./songs.db"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,4 +26,11 @@ func main() {
 	if err := server.Start(); err != nil {
 		log.Fatalf("Critical server error: %v", err)
 	}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

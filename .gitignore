@@ -10,3 +10,9 @@ downloaded.txt
 
 
 /.venv
+*.db
+songs/
+recordings/
+songs.txt
+downloaded.txt
+.venv/
